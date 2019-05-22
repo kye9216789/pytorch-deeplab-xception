@@ -1,7 +1,16 @@
+from os import path
+import sys
+sys.path.append(path.abspath('../mp_biorobot_monitoring_dataset/src'))
+from dataset.dataloader import SegmentDataset
+from dataset.config import config as cfg
+
 from dataloaders.datasets import cityscapes, coco, combine_dbs, pascal, sbd, mpgw
 from torch.utils.data import DataLoader
+import torchvision.transforms as transform
 
 def make_data_loader(args, **kwargs):
+    normalize = transform.Normalize(mean=[0.5, 0.5, 0.5], std=[0.225, 0.225, 0.225])
+    transforms = transform.Compose([transform.ToTensor(), normalize,])
 
     if args.dataset == 'pascal':
         train_set = pascal.VOCSegmentation(args, split='train')
@@ -38,8 +47,8 @@ def make_data_loader(args, **kwargs):
         return train_loader, val_loader, test_loader, num_class
 
     elif args.dataset == 'mpgw':
-        train_set = mpgw.MPGWSegmentation(args, split='train')
-        val_set = coco.MPGWSegmentation(args, split='val')
+        train_set = SegmentDataset(cfg, cfg["train_set"], transforms=transforms)
+        val_set = SegmentDataset(cfg, cfg["valid_set"], is_train=False, transforms=transforms)
         num_class = train_set.NUM_CLASSES
         train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, **kwargs)
         val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, **kwargs)
